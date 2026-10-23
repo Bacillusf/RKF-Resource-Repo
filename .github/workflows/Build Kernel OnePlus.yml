@@ -1521,6 +1521,7 @@ jobs:
         with:
           name: ${{ steps.package.outputs.AK3_NAME }}
           path: ${{ github.workspace }}/AK3_*.zip
+          archive: false
 
       - name: Extract and Process ZRAM Module
         if: startsWith(github.event.inputs.ZRAM, '1/')
