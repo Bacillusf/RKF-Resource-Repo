@@ -626,6 +626,8 @@ jobs:
           echo "BBG: true" >> ./ak3.log
           zip -z ../$AK3_NAME < ./ak3.log
 
+      # upload-artifact v7 + archive:false 会以“文件名”作为工件名，name: 不生效；
+      # 因此 publish 侧不按工件名过滤，统一按 AK3_*.zip 归档
       - name: 上传 ZIP 工件
         uses: actions/upload-artifact@v7
         with:
@@ -658,7 +660,6 @@ jobs:
         continue-on-error: true
         with:
           path: _ak3_artifacts
-          pattern: kernel-*
           merge-multiple: true
 
       - name: 归档到 AnyKernel3_Official/MIXKI
@@ -666,9 +667,15 @@ jobs:
           set -euo pipefail
           mapfile -t ZIPS < <(find _ak3_artifacts -type f -name 'AK3_*.zip' 2>/dev/null | sort)
           if [ "${#ZIPS[@]}" -eq 0 ]; then
-            echo "没有成功构建的内核包，跳过归档"
+            if [ -n "$(find _ak3_artifacts -type f -print -quit 2>/dev/null)" ]; then
+              echo "::error::已下载工件，但其中没有 AK3_*.zip（产物命名不符合约定），中止归档"
+              find _ak3_artifacts -type f | head -20
+              exit 1
+            fi
+            echo "::warning::本次运行没有任何工件，跳过归档"
             exit 0
           fi
+          echo "待归档内核包：${#ZIPS[@]} 个"
           SERIES="${KERNEL_VERSION}.x"
           for f in "${ZIPS[@]}"; do
             base="$(basename "$f")"
