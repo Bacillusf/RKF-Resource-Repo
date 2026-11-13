@@ -4,47 +4,46 @@ env:
   TZ: Asia/Shanghai
   ANDROID_VERSION: 'android15'
   KERNEL_VERSION: '6.6'
-  SUSFS_ENABLE: 'false'
   KERNEL_NAME: 'android15-8-g29d86c5fc9dd-abogki428889875-4k'
 
 on:
   workflow_dispatch:
     inputs:
       config_info:
-        description: '【固定配置】susfs=n | kpm=y | lz4=y | lz4kd=y | bbr=false | droidspace=extend | 网络扩展=y | ADIOS=y | BBG=y | 内核后缀默认'
+        description: '【固定配置】susfs=仅BakaSU | kpm=y | lz4=y | lz4kd=y | bbr=false | droidspace=extend | 网络扩展=y | ADIOS=y | BBG=y | 内核后缀默认'
         type: choice
         default: '已固定启用，无需操作'
         options:
           - '已固定启用，无需操作'
-      resukisu_30:
+      bakasu_30:
         description: 'BakaSU - 6.6.30'
         type: boolean
         default: false
-      resukisu_50:
+      bakasu_50:
         description: 'BakaSU - 6.6.50'
         type: boolean
         default: false
-      resukisu_56:
+      bakasu_56:
         description: 'BakaSU - 6.6.56'
         type: boolean
         default: false
-      resukisu_57:
+      bakasu_57:
         description: 'BakaSU - 6.6.57'
         type: boolean
         default: false
-      resukisu_66:
+      bakasu_66:
         description: 'BakaSU - 6.6.66'
         type: boolean
         default: false
-      resukisu_89:
+      bakasu_89:
         description: 'BakaSU - 6.6.89'
         type: boolean
         default: false
-      resukisu_89_mtk:
+      bakasu_89_mtk:
         description: 'BakaSU - 6.6.89 MTK'
         type: boolean
         default: false
-      resukisu_118:
+      bakasu_118:
         description: 'BakaSU - 6.6.118'
         type: boolean
         default: false
@@ -115,7 +114,7 @@ on:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       include: ${{ steps.matrix.outputs.include }}
     steps:
@@ -128,14 +127,14 @@ jobs:
             VERSIONS+=("{\"key\":\"${ksu}-${label}\",\"ksu_type\":\"${ksu}\",\"sub_version\":\"${sub}\",\"mtk\":\"${mtk}\",\"source_repo\":\"${repo}\",\"source_branch\":\"${branch}\",\"source_archive\":\"${arch}\",\"ccache_key\":\"${ckey}\",\"ccache_sub\":\"${csub}\",\"chip\":\"${chip}\"}")
           }
           # ============ 板块1: BakaSU (排序 30→118) ============
-            if [ "${{ inputs.resukisu_30 }}" = "true" ]; then add_ver bakasu 30 6.6.30 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.0_oneplus_13 oneplus-sm8750_v_15.0.0_oneplus_13 ccache-ecsv4-6.6.30 6.6.30 骁龙8Elite; fi
-            if [ "${{ inputs.resukisu_50 }}" = "true" ]; then add_ver bakasu 50 6.6.50 true android_kernel_oneplus_mt6991 oneplus/mt6991_v_15.0.2_ace5_ultra oneplus-mt6991_v_15.0.2_ace5_ultra ccache-ecsv4-6.6.50 6.6.50 天玑9400+; fi
-            if [ "${{ inputs.resukisu_56 }}" = "true" ]; then add_ver bakasu 56 6.6.56 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.2_oneplus_13t oneplus-sm8750_v_15.0.2_oneplus_13t ccache-ecsv4-6.6.56 6.6.56 骁龙8Elite; fi
-            if [ "${{ inputs.resukisu_57 }}" = "true" ]; then add_ver bakasu 57 6.6.57 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.1_pad_2_pro oneplus-sm8750_v_15.0.1_pad_2_pro ccache-ecsv4-6.6.57 6.6.57 骁龙8Elite; fi
-            if [ "${{ inputs.resukisu_66 }}" = "true" ]; then add_ver bakasu 66 6.6.66 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.2_oneplus_13_6.6.66 oneplus-sm8750_v_15.0.2_oneplus_13_6.6.66 ccache-ecsv4-6.6.66 6.6.66 骁龙8Elite; fi
-            if [ "${{ inputs.resukisu_89 }}" = "true" ]; then add_ver bakasu 89 6.6.89 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_16.0.0_oneplus_13_6.6.89 oneplus-sm8750_v_16.0.0_oneplus_13_6.6.89 ccache-ecsv4-6.6.89 6.6.89 骁龙8Elite; fi
-            if [ "${{ inputs.resukisu_89_mtk }}" = "true" ]; then add_ver bakasu 89 6.6.89_mtk true android_kernel_oneplus_mt6991 oneplus/mt6991_v_15.0.2_ace5_ultra_6.6.89 oneplus-mt6991_v_15.0.2_ace5_ultra_6.6.89 ccache-ecsv4-mtk_6.6.89 mtk_6.6.89 天玑9400+; fi
-            if [ "${{ inputs.resukisu_118 }}" = "true" ]; then add_ver bakasu 118 6.6.118 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_b_16.0.0_oneplus_13_6.6.118 oneplus-sm8750_b_16.0.0_oneplus_13_6.6.118 ccache-ecsv4-6.6.118 6.6.118 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_30 }}" = "true" ]; then add_ver bakasu 30 6.6.30 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.0_oneplus_13 oneplus-sm8750_v_15.0.0_oneplus_13 ccache-ecsv4-6.6.30 6.6.30 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_50 }}" = "true" ]; then add_ver bakasu 50 6.6.50 true android_kernel_oneplus_mt6991 oneplus/mt6991_v_15.0.2_ace5_ultra oneplus-mt6991_v_15.0.2_ace5_ultra ccache-ecsv4-6.6.50 6.6.50 天玑9400+; fi
+            if [ "${{ inputs.bakasu_56 }}" = "true" ]; then add_ver bakasu 56 6.6.56 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.2_oneplus_13t oneplus-sm8750_v_15.0.2_oneplus_13t ccache-ecsv4-6.6.56 6.6.56 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_57 }}" = "true" ]; then add_ver bakasu 57 6.6.57 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.1_pad_2_pro oneplus-sm8750_v_15.0.1_pad_2_pro ccache-ecsv4-6.6.57 6.6.57 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_66 }}" = "true" ]; then add_ver bakasu 66 6.6.66 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.2_oneplus_13_6.6.66 oneplus-sm8750_v_15.0.2_oneplus_13_6.6.66 ccache-ecsv4-6.6.66 6.6.66 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_89 }}" = "true" ]; then add_ver bakasu 89 6.6.89 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_16.0.0_oneplus_13_6.6.89 oneplus-sm8750_v_16.0.0_oneplus_13_6.6.89 ccache-ecsv4-6.6.89 6.6.89 骁龙8Elite; fi
+            if [ "${{ inputs.bakasu_89_mtk }}" = "true" ]; then add_ver bakasu 89 6.6.89_mtk true android_kernel_oneplus_mt6991 oneplus/mt6991_v_15.0.2_ace5_ultra_6.6.89 oneplus-mt6991_v_15.0.2_ace5_ultra_6.6.89 ccache-ecsv4-mtk_6.6.89 mtk_6.6.89 天玑9400+; fi
+            if [ "${{ inputs.bakasu_118 }}" = "true" ]; then add_ver bakasu 118 6.6.118 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_b_16.0.0_oneplus_13_6.6.118 oneplus-sm8750_b_16.0.0_oneplus_13_6.6.118 ccache-ecsv4-6.6.118 6.6.118 骁龙8Elite; fi
           # ============ 板块2: KernelSU-Next (排序 30→118) ============
             if [ "${{ inputs.ksunext_30 }}" = "true" ]; then add_ver ksunext 30 6.6.30 false android_kernel_common_oneplus_sm8750 oneplus/sm8750_v_15.0.0_oneplus_13 oneplus-sm8750_v_15.0.0_oneplus_13 ccache-ecsv4-6.6.30 6.6.30 骁龙8Elite; fi
             if [ "${{ inputs.ksunext_50 }}" = "true" ]; then add_ver ksunext 50 6.6.50 true android_kernel_oneplus_mt6991 oneplus/mt6991_v_15.0.2_ace5_ultra oneplus-mt6991_v_15.0.2_ace5_ultra ccache-ecsv4-6.6.50 6.6.50 天玑9400+; fi
@@ -159,7 +158,7 @@ jobs:
   build:
     needs: setup
     if: needs.setup.outputs.include != '[]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -215,6 +214,19 @@ jobs:
             sed -i 's/ -dirty//g' "$f"
             sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$f"
           done
+
+      # 参数解析阶段：与上游 builder 的 APPLY_SUSFS 语义一致，仅 BakaSU 分支启用 susfs
+      - name: 解析编译参数（susfs 仅 BakaSU）
+        run: |
+          if [ "${{ matrix.ksu_type }}" = "bakasu" ]; then
+            echo "APPLY_SUSFS=y" >> "$GITHUB_ENV"
+            echo "SUSFS_TAG=SUSFS" >> "$GITHUB_ENV"
+            echo "KSU 分支 BakaSU：内置 SUSFS"
+          else
+            echo "APPLY_SUSFS=n" >> "$GITHUB_ENV"
+            echo "SUSFS_TAG=NOSUSFS" >> "$GITHUB_ENV"
+            echo "::notice title=SUSFS 已跳过::非 BakaSU 分支（${{ matrix.ksu_type }}）不再内置 SUSFS，等效 APPLY_SUSFS=n"
+          fi
 
       - name: 配置ccache目录
         run: |
@@ -310,7 +322,7 @@ jobs:
           fi
 
       - name: 应用 KernelSU & SUSFS 补丁
-        if: env.SUSFS_ENABLE == 'true'
+        if: env.APPLY_SUSFS == 'y'
         run: |
           cd kernel_workspace
           echo "正在添加susfs补丁..."
@@ -334,12 +346,12 @@ jobs:
         run: |
           echo "正在添加lz4 1.10.0 & zstd 1.5.7补丁…"
           cd kernel_workspace
-          git clone --depth=1 https://github.com/$GITHUB_REPOSITORY.git -b $GITHUB_REF_NAME $GITHUB_ACTOR
-          cp ./$GITHUB_ACTOR/.github/workflows/Dependencies/6.6-Dependency/zram_patch/001-lz4.patch ./common/
-          cp ./$GITHUB_ACTOR/.github/workflows/Dependencies/6.6-Dependency/zram_patch/lz4armv8.S ./common/lib
-          cp ./$GITHUB_ACTOR/.github/workflows/Dependencies/6.6-Dependency/zram_patch/002-zstd.patch ./common/
+          DEP_URL="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/refs/heads/$GITHUB_REF_NAME/.github/workflows/Dependencies/6.6-Dependency/zram_patch"
+          wget "$DEP_URL/001-lz4.patch" -O ./common/001-lz4.patch
+          wget "$DEP_URL/lz4armv8.S" -O ./common/lib/lz4armv8.S
+          wget "$DEP_URL/002-zstd.patch" -O ./common/002-zstd.patch
           if [[ "${{ matrix.mtk }}" == "true" ]]; then
-            cp ./$GITHUB_ACTOR/.github/workflows/Dependencies/6.6-Dependency/zram_patch/001-lz4-clearMake.patch ./common/
+            wget "$DEP_URL/001-lz4-clearMake.patch" -O ./common/001-lz4-clearMake.patch
           fi
           cd ./common
           git apply -p1 < 001-lz4.patch || true
@@ -363,7 +375,7 @@ jobs:
           patch -p1 -F 3 < lz4kd.patch || true
 
       - name: 添加SUSFS 配置项
-        if: env.SUSFS_ENABLE == 'true'
+        if: env.APPLY_SUSFS == 'y'
         run: |
           cd kernel_workspace
           echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -386,7 +398,8 @@ jobs:
         run: |
           cd kernel_workspace
           echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-          if [[ "${{ env.SUSFS_ENABLE }}" != "true" ]]; then
+          # 与上游 susfs_enable=false 的处理一致：显式关闭，避免 defconfig 残留 susfs
+          if [ "${APPLY_SUSFS}" != "y" ]; then
             echo "CONFIG_KSU_SUSFS=n" >> ./common/arch/arm64/configs/gki_defconfig
           fi
           echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -606,8 +619,7 @@ jobs:
           else
             MTK_PREFIX=""
           fi
-          if [[ "${{ env.SUSFS_ENABLE }}" == "true" ]]; then SUSFS_TAG="SUSFS_"; else SUSFS_TAG=""; fi
-          AK3_NAME="AK3_${MTK_PREFIX}${KSU_SHORT}_${DISP_VER}_${KSUVER}_${SUSFS_TAG}KPN_LZ4_DS_IN_ADIOS_BBG.zip"
+          AK3_NAME="AK3_${MTK_PREFIX}${KSU_SHORT}_${DISP_VER}_${KSUVER}_${SUSFS_TAG}_KPN_LZ4_DS_IN_ADIOS_BBG.zip"
 
           zip -r ../$AK3_NAME ./*
           echo "ak3name=$AK3_NAME" >> $GITHUB_OUTPUT
@@ -623,7 +635,11 @@ jobs:
           echo "Kernel Ver: $FULL_VERSION" >> ./ak3.log
           echo "KSU Branch: ${KSU_TYPENAME}" >> ./ak3.log
           echo "KSU Ver: ${KSUVER}" >> ./ak3.log
-          echo "susfs: ${{ env.SUSFS_ENABLE }}" >> ./ak3.log
+          if [ "${APPLY_SUSFS}" = "y" ]; then
+            echo "susfs: true" >> ./ak3.log
+          else
+            echo "susfs: false" >> ./ak3.log
+          fi
           echo "KPM: true" >> ./ak3.log
           echo "LZ4: true" >> ./ak3.log
           echo "LZ4KD: true" >> ./ak3.log
@@ -657,6 +673,8 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
+          # 优先用 PAT（可绕过 bot 推送限制），未配置时回落到仓库自带 token
+          token: ${{ secrets.RESOURCE_PAT || secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
       - name: 下载全部内核工件
@@ -707,12 +725,12 @@ jobs:
           git add AnyKernel3_Official
           git commit -m "chore(MIXKI): 更新 ${KERNEL_VERSION}.x 内核产物 [skip ci]"
           for i in 1 2 3 4 5; do
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            if git push origin "HEAD:${{ github.ref_name }}"; then
               echo "推送成功"
               exit 0
             fi
             echo "推送失败，rebase 后重试（第 ${i} 次）"
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git pull --rebase --autostash origin "${{ github.ref_name }}" || true
             sleep $((i * 3))
           done
           echo "::error::推送产物失败"

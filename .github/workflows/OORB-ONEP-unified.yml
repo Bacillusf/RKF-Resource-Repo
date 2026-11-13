@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       config_info:
-        description: '【固定配置】SUSFS_CI=N/A | KPM=KPM | LZ4_UPDATE=n | ZRAM=1/zstd/8589934592 | SUFFIX=8-g29d86c5fc9dd-abogki428889875-4k | FAST_BUILD=y | BBG=y | NETFILTER=y | CCM=n | UNICODE_BYPASS=y | HMBIRD=y | DROID_SPACES=y | RE_KERNEL=n'
+        description: '【固定配置】SUSFS_CI=N/A | SUSFS_META=-1 | KPM=KPM | LZ4_UPDATE=n | ZRAM=1/zstd/8589934592 | SUFFIX=8-g29d86c5fc9dd-abogki428889875-4k | FAST_BUILD=y | BBG=y | NETFILTER=y | CCM=n | UNICODE_BYPASS=y | HMBIRD=y | DROID_SPACES=y | RE_KERNEL=n'
         type: choice
         default: '已固定启用，无需操作'
         options:
@@ -111,9 +111,9 @@ jobs:
       CCACHE_MAXSIZE: 5G
       SUSFS_CI: 'N/A'
       KPM: 'KPM'
-      SUSFS_META: ''
+      SUSFS_META: '-1'
       DYNAMIC_REPO: 'Numbersf'
-      BUILD_TIME: 'Wed Jul 15 11:18:49 UTC 2026'
+      BUILD_TIME: 'Fri Dec 12 11:37:03 UTC 2025'
       KSU_META: 'main/builtin/Bacillusf/'
       LZ4_UPDATE: 'false'
       ZRAM: '1/zstd/8589934592'
@@ -130,6 +130,7 @@ jobs:
       SPACE_NOCLEAN: 'false'
       BUILD_NOCACHE: 'false'
     steps:
+      # 磁盘扩容脚本随仓库分发，需在扩容挂载前先拉到 RUNNER_TEMP，避免新卷覆盖工作区
       - name: Maximize Build Space
         if: ${{ env.SPACE_NOCLEAN == 'false' }}
         env:
@@ -153,7 +154,7 @@ jobs:
           mkdir kernel_workspace && cd kernel_workspace
           git clone https://github.com/Numbersf/Action-Build.git -b SukiSU-Ultra
 
-      - name: Overlay All-ONEP-Dependency
+      - name: Overlay .github/workflows/Dependencies/All-ONEP-Dependency
         run: |
           cp -rf "${GITHUB_WORKSPACE}/.github/workflows/Dependencies/All-ONEP-Dependency/." "${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/"
 
@@ -346,9 +347,10 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          export APT_PACKAGES="python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip zip gawk dos2unix kmod libdw-dev elfutils dwarves"
+          export APT_PACKAGES="python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev lz4 zlib1g-dev libxml2-utils rsync unzip zip gawk dos2unix kmod libdw-dev elfutils dwarves"
           bash "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/cache_apt_pkgs.sh" ~/.apt-pkg-cache
 
+      # 新版 SusfsCompat/SusfsContext 使用 `kotlin xxx.kts` 运行，需独立安装 Kotlin 2.4.10
       - name: Setup Kotlin
         run: |
           KOTLIN_VERSION="2.4.10"
@@ -680,11 +682,6 @@ jobs:
           grep -nE '^(REPO_OWNER|REPO_NAME|REPO_BRANCH|KSU_VERSION_API|KSU_VERSION_FULL|VERSION_TAG|GIT_BIN|CURL_BIN)' kernel/Makefile
           echo "::endgroup::"
 
-      - name: Apply Fake Patches
-        if: ${{ env.SUSFS_META != '-1' }}
-        run: |
-          kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" apply "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
-
       - name: Apply Patches SukiSU Ultra
         env:
           FILE: ${{ matrix.file }}
@@ -730,6 +727,10 @@ jobs:
 
           cd ./common
 
+          if [ "${{ env.SUSFS_META }}" != "-1" ]; then
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" apply "$PWD"
+          fi
+
           if [ "$KMI" == "android13-5.15" ] && [ "$SUBLEVEL" -lt 123 ]; then
             echo "修复内核版本为5.15.0~5.15.123仅支持旧版C库造成的一些bug"
             cp "${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches/fix_5.15.legacy" ./fix_5.15.legacy.patch
@@ -739,17 +740,17 @@ jobs:
 
           if [ "${{ env.SUSFS_META }}" != "-1" ]; then
             echo "正在打susfs补丁"
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsContext.kts" "$PWD" "$PWD/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch"
             patch -p1 < 50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             echo "susfs_patch完成"
           fi
           source $REJ_CHECKER
           check_rejects .
 
-      - name: Revert and Postfix Fake Patches
-        if: ${{ env.SUSFS_META != '-1' }}
-        run: |
-          kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" postfix "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
-          kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/PatchFakePatches.kts" revert "$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/common"
+          if [ "${{ env.SUSFS_META }}" != "-1" ]; then
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" postfix "$PWD"
+            kotlin "$GITHUB_WORKSPACE/kernel_workspace/Action-Build/scripts/SusfsCompat.kts" revert "$PWD"
+          fi
 
       # OGKI转换GKI，无需修改 dtbo 开机
       - name: Apply Convert HMBIRD_OGKI to HMBIRD_GKI
@@ -1154,6 +1155,17 @@ jobs:
           echo "Disabling GPUEB for MTK kernel 5.10"
           sed -i '/obj-y.*gpueb/d' kernel_workspace/kernel-5.10/drivers/gpu/mediatek/Makefile
 
+      # Ubuntu 26（glibc C23）下 libbpf 的 strstr/strchr 返回值需显式转换，否则编译报错
+      - name: Fix libbpf for new glibc
+        run: |
+          cd kernel_workspace/kernel_platform/common
+          f="./tools/lib/bpf/libbpf.c"
+          if [ -f "$f" ]; then
+            sed -i -E 's/(\bres = )strstr\(sym_name, "\.llvm\."\)/\1(char *)strstr(sym_name, ".llvm.")/' "$f"
+            sed -i -E 's/(\bnext_path = )strchr\(s, '"'"':'"'"'\)/\1(char *)strchr(s, '"'"':'"'"')/' "$f"
+            grep -nE '\(char \*\)(strstr|strchr)' "$f" || echo "✅ 匹配失败，当前云控ubuntu版本无需此操作"
+          fi
+
       - name: Build Kernel FAST
         if: ${{ env.FAST_BUILD == 'true' }}
         id: fast_build
@@ -1473,7 +1485,7 @@ jobs:
       - name: Package AnyKernel3
         id: package
         run: |
-          CONFIG="SUSFS_KPM_BBG_IN_FIX"
+          CONFIG="NOSUSFS_KPM_BBG_IN_FIX"
           if [ "${{ matrix.hmbird }}" = "true" ]; then
             CONFIG="${CONFIG}_HMBRID"
           fi
@@ -1590,7 +1602,6 @@ jobs:
 
       - name: Post-build Disk Check
         run: df -h
-
   publish:
     needs: [setup, build]
     runs-on: ubuntu-latest
@@ -1607,6 +1618,8 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
+          # 优先用 PAT（可绕过 bot 推送限制），未配置时回落到仓库自带 token
+          token: ${{ secrets.RESOURCE_PAT || secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
       - name: 下载全部内核工件
@@ -1614,6 +1627,7 @@ jobs:
         continue-on-error: true
         with:
           path: _ak3_artifacts
+          pattern: AK3_*
           merge-multiple: true
 
       - name: 归档到 AnyKernel3_Official/OORB
@@ -1633,8 +1647,6 @@ jobs:
             case "${mgr,,}" in
               bakasu)  dir="BakaSU" ;;
               sukisu)  dir="SukiSU" ;;
-              ksunext) dir="KSUN" ;;
-              ksu)     dir="KSU" ;;
               *) echo "::warning::未知管理器 ${mgr}，跳过 ${base}"; continue ;;
             esac
             dest="AnyKernel3_Official/OORB/${dir}"
@@ -1655,12 +1667,12 @@ jobs:
           git add AnyKernel3_Official
           git commit -m "chore(OORB): 更新 OnePlus 全机型内核产物 [skip ci]"
           for i in 1 2 3 4 5; do
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            if git push origin "HEAD:${{ github.ref_name }}"; then
               echo "推送成功"
               exit 0
             fi
             echo "推送失败，rebase 后重试（第 ${i} 次）"
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git pull --rebase --autostash origin "${{ github.ref_name }}" || true
             sleep $((i * 3))
           done
           echo "::error::推送产物失败"

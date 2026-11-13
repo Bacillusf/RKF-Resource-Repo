@@ -1,2 +1,10 @@
 # 整合素材（上游仓库快照/压缩包，不入库）
 /deal/
+
+# publish job 的临时工件目录
+/_ak3_artifacts/
+
+# 补丁/编辑残留
+*.rej
+*.orig
+*~
