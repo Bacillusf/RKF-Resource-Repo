@@ -650,14 +650,13 @@ jobs:
           echo "BBG: true" >> ./ak3.log
           zip -z ../$AK3_NAME < ./ak3.log
 
-      # upload-artifact v7 + archive:false 会以“文件名”作为工件名，name: 不生效；
-      # 因此 publish 侧不按工件名过滤，统一按 AK3_*.zip 归档
+      # 工件按默认归档模式上传（容器内是 AK3_*.zip 本体），publish 解容器一次即得内核包；
+      # 不按工件名过滤，统一按文件名 AK3_*.zip 归档
       - name: 上传 ZIP 工件
         uses: actions/upload-artifact@v7
         with:
           name: kernel-${{ matrix.key }}
           path: ${{ github.workspace }}/kernel_workspace/AK3_*.zip
-          archive: false
 
   publish:
     needs: [setup, build]
@@ -684,24 +683,42 @@ jobs:
         continue-on-error: true
         with:
           path: _ak3_artifacts
-          merge-multiple: true
 
       - name: 归档到 AnyKernel3_Official/MIXKI
         run: |
           set -euo pipefail
-          mapfile -t ZIPS < <(find _ak3_artifacts -type f -name 'AK3_*.zip' 2>/dev/null | sort)
-          if [ "${#ZIPS[@]}" -eq 0 ]; then
-            if [ -n "$(find _ak3_artifacts -type f -print -quit 2>/dev/null)" ]; then
-              echo "::error::已下载工件，但其中没有 AK3_*.zip（产物命名不符合约定），中止归档"
-              find _ak3_artifacts -type f | head -20
+          shopt -s nullglob
+          SERIES="${KERNEL_VERSION}.x"
+          WORK="$(mktemp -d)"
+          STAGED=0
+          for d in _ak3_artifacts/*/; do
+            base="$(basename "$d")"
+            zipfile="$(find "$d" -maxdepth 2 -type f -name 'AK3_*.zip' -print -quit 2>/dev/null || true)"
+            if [ -n "$zipfile" ]; then
+              cp -f "$zipfile" "$WORK/$(basename "$zipfile")"
+              STAGED=$((STAGED + 1))
+              continue
+            fi
+            # 兼容“内核包被当作工件内容解开”的情况：用工件名重新打包
+            if [ -f "$d/anykernel.sh" ]; then
+              if ( cd "$d" && zip -qr "$WORK/$base" . ); then
+                STAGED=$((STAGED + 1))
+                continue
+              fi
+            fi
+            echo "· 跳过无内核产物的工件：$base"
+          done
+          if [ "$STAGED" -eq 0 ]; then
+            if [ "${{ needs.build.result }}" = "success" ]; then
+              echo "::error::构建成功，但没有可归档的 AK3 内核包（检查上传步骤的产物名与打包方式）"
+              find _ak3_artifacts -maxdepth 2 | head -20
               exit 1
             fi
-            echo "::warning::本次运行没有任何工件，跳过归档"
+            echo "::warning::构建未成功，无内核产物可归档"
             exit 0
           fi
-          echo "待归档内核包：${#ZIPS[@]} 个"
-          SERIES="${KERNEL_VERSION}.x"
-          for f in "${ZIPS[@]}"; do
+          echo "待归档内核包：${STAGED} 个"
+          for f in "$WORK"/AK3_*.zip; do
             base="$(basename "$f")"
             rest="${base#AK3_}"
             rest="${rest#MTK_}"
