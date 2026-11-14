@@ -549,6 +549,12 @@ jobs:
           KCFLAGS+=" -Wno-error"
           KCFLAGS+=" -fno-stack-protector"
           KCFLAGS+=" -D__ANDROID_COMMON_KERNEL__"
+          # 6.12 的 kbuild 会给 src 加 VPATH(..) 前缀（src := $(VPATH)/$(obj)），
+          # KernelSU-Next 的 Kbuild 又拼一次 srctree，-I 被算成 ../../drivers/kernelsu（源码树外），
+          # 导致 klog.h / ksu_samsung_kdp.h / arch.h / uapi/app_profile.h 找不到；这里补绝对路径兜底
+          if [ "${{ matrix.ksu_type }}" = "ksunext" ]; then
+            KCFLAGS+=" -I$(pwd)/drivers/kernelsu -I$(pwd)/drivers/kernelsu/include -I$(pwd)/../KernelSU-Next"
+          fi
           export KCFLAGS
           export HOSTCC=clang
           export LD="ld.lld"
