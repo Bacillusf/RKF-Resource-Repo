@@ -1615,7 +1615,8 @@ jobs:
       - name: Checkout 资源仓库
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref_name }}
+          # 产物统一写入 product 分支；main 只保留代码与工作流
+          ref: product
           fetch-depth: 1
           token: ${{ secrets.RESOURCE_PAT || secrets.GITHUB_TOKEN }}
           persist-credentials: true
@@ -1657,6 +1658,8 @@ jobs:
             case "${mgr,,}" in
               bakasu)  dir="BakaSU" ;;
               sukisu)  dir="SukiSU" ;;
+              ksunext) dir="KSU-Next" ;;
+              ksu)     dir="KSU" ;;
               *) echo "::warning::未知管理器 ${mgr}，跳过 ${base}"; continue ;;
             esac
             dest="AnyKernel3_Official/OORB/${dir}"
@@ -1677,12 +1680,12 @@ jobs:
           git add AnyKernel3_Official
           git commit -m "chore(OORB): 更新 OnePlus 全机型内核产物 [skip ci]"
           for i in 1 2 3 4 5; do
-            if git push origin "HEAD:${{ github.ref_name }}"; then
+            if git push origin "HEAD:product"; then
               echo "推送成功"
               exit 0
             fi
             echo "推送失败，rebase 后重试（第 ${i} 次）"
-            git pull --rebase --autostash origin "${{ github.ref_name }}" || true
+            git pull --rebase --autostash origin product || true
             sleep $((i * 3))
           done
           echo "::error::推送产物失败"

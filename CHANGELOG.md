@@ -14,6 +14,15 @@
 ### Fixed (修复)
 - 待发布的Bug修复描述
 
+## [1.3.0] - 2026-11-14
+### Changed (变更)
+- 拆分代码与产物：`main` 只保留工作流/依赖/文档，产物统一提交到新增的 `product` 分支
+- `publish` job 改为 checkout `product` 分支并把产物推回 `product`（不再写回触发分支）
+- 产物目录管理器文件夹统一为 `BakaSU / SukiSU / KSU-Next / KSU`（原 `KSUN` / `SuKiSU` 更名），`OORB` 同步补齐 `KSU` / `KSU-Next`
+
+### Removed (移除)
+- `main` 分支上的 `AnyKernel3_Official/`、`AnyKernel3_community/` 目录（产物与 `.gitkeep` 已迁至 `product`）
+
 ## [1.2.0] - 2026-11-13
 ### Added
 - 新增 `publish` job：构建产物不再发布 Release / Tag，直接提交到 `AnyKernel3_Official/` 对应目录（commit 带 `[skip ci]`，并发组 `publish-ak3-official`）
