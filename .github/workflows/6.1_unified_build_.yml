@@ -650,7 +650,6 @@ jobs:
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 1
-          # 优先用 PAT（可绕过 bot 推送限制），未配置时回落到仓库自带 token
           token: ${{ secrets.RESOURCE_PAT || secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
@@ -667,27 +666,15 @@ jobs:
           SERIES="${KERNEL_VERSION}.x"
           WORK="$(mktemp -d)"
           STAGED=0
-          for d in _ak3_artifacts/*/; do
-            base="$(basename "$d")"
-            zipfile="$(find "$d" -maxdepth 2 -type f -name 'AK3_*.zip' -print -quit 2>/dev/null || true)"
-            if [ -n "$zipfile" ]; then
-              cp -f "$zipfile" "$WORK/$(basename "$zipfile")"
-              STAGED=$((STAGED + 1))
-              continue
-            fi
-            # 兼容“内核包被当作工件内容解开”的情况：用工件名重新打包
-            if [ -f "$d/anykernel.sh" ]; then
-              if ( cd "$d" && zip -qr "$WORK/$base" . ); then
-                STAGED=$((STAGED + 1))
-                continue
-              fi
-            fi
-            echo "· 跳过无内核产物的工件：$base"
-          done
+          # 递归收集任意深度的 AK3_*.zip（工件可能被解到根目录，也可能在工件名子目录里）
+          while IFS= read -r -d '' z; do
+            cp -f "$z" "$WORK/$(basename "$z")"
+            STAGED=$((STAGED + 1))
+          done < <(find _ak3_artifacts -type f -name 'AK3_*.zip' -print0)
           if [ "$STAGED" -eq 0 ]; then
             if [ "${{ needs.build.result }}" = "success" ]; then
               echo "::error::构建成功，但没有可归档的 AK3 内核包（检查上传步骤的产物名与打包方式）"
-              find _ak3_artifacts -maxdepth 2 | head -20
+              find _ak3_artifacts -maxdepth 3 | head -40
               exit 1
             fi
             echo "::warning::构建未成功，无内核产物可归档"
